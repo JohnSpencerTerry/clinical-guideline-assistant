@@ -1,0 +1,10 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# ingested/processed guideline data and local vector store persistence
+data/raw/
+data/processed/
