@@ -15,6 +15,9 @@ dependencies = [
     "pydantic-settings",
     "streamlit",
     "pypdf",
+    "langchain-huggingface",
+    "sentence-transformers",
+    "langchain-text-splitters",
 ]
 
 [dependency-groups]

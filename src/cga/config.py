@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
 
     vector_store_dir: str = "./data/processed/chroma"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 settings = Settings()
