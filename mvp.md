@@ -6,7 +6,7 @@
 
 ## Problem
 
-Clinical guidelines (ADA, NICE, IDF, etc.) contain authoritative, well-structured recommendations, but they're long, dense, and scattered across multiple documents and organizations. A clinician, med student, or curious layperson who wants to know "what's the recommended first-line treatment for X" has to either already know which section of which 200-page PDF to open, or trust a generic LLM's memorized (and potentially outdated or hallucinated) answer.
+Clinical guidelines (ADA, NICE, etc.) contain authoritative, well-structured recommendations, but they're long, dense, and scattered across multiple documents and organizations. A clinician, med student, or curious layperson who wants to know "what's the recommended first-line treatment for X" has to either already know which section of which 200-page PDF to open, or trust a generic LLM's memorized (and potentially outdated or hallucinated) answer.
 
 There's no lightweight tool that:
 - Answers guideline questions **grounded in and cited to the actual source text**, rather than paraphrased from model memory
@@ -21,7 +21,7 @@ This project builds that tool, scoped to a single well-documented condition (Typ
 
 ### Summary
 
-A conversational assistant that answers questions about Type 2 Diabetes diagnosis, screening, treatment, and complications by retrieving from three public clinical guideline sources (ADA, NICE, IDF), comparing what each source says, and generating a cited, grounded answer. The system:
+A conversational assistant that answers questions about Type 2 Diabetes diagnosis, screening, treatment, and complications by retrieving from two public clinical guideline sources (ADA, NICE), comparing what each source says, and generating a cited, grounded answer. The system:
 
 - Routes urgent/emergency-sounding messages to a redirect instead of answering from guidelines
 - Routes patient-specific requests to a redirect/reframe instead of giving individualized advice
@@ -36,8 +36,7 @@ The primary goal is **learning LangChain/LangGraph deeply**, not shipping a prod
 | Source | Character | Role in the project |
 |---|---|---|
 | **ADA Standards of Care in Diabetes — 2026** | Comprehensive, US-centric, annual living document, published as multiple journal-article sections | Primary/anchor source, full scope (diagnosis → complications) |
-| **NICE NG28** (Type 2 diabetes in adults: management) | UK NHS guideline with explicit numbered recommendations (e.g. "1.9.3") | Citation granularity, structured extraction (tables), recency tracking |
-| **IDF Global Clinical Practice Recommendations** | Global/resource-context-aware | Genuine cross-source disagreement material (drug-access-dependent recommendations differ from ADA/NICE) |
+| **NICE NG28** (Type 2 diabetes in adults: management) | UK NHS guideline with explicit numbered recommendations (e.g. "1.9.3") | Citation granularity, structured extraction (tables), recency tracking, cross-source disagreement material (e.g. NICE's early dual-therapy push vs. ADA's more staged approach) |
 
 **Scope:** full guideline scope — diagnosis, screening, pharmacologic/non-pharmacologic treatment, and complications (retinopathy, nephropathy, neuropathy, cardiovascular risk) — chosen deliberately because each area has a different content shape (short/factual, tabular, algorithmic/branching, long narrative), which stress-tests chunking and retrieval strategy across the board instead of over-fitting to one content type.
 
@@ -46,7 +45,7 @@ The primary goal is **learning LangChain/LangGraph deeply**, not shipping a prod
 The backend is the actual learning surface for this project. It has four layers:
 
 **1. Ingestion & indexing**
-- Programmatic ingestion of ADA (multi-section journal articles), NICE (PDF with numbered recommendations), and IDF (PDF/HTML) — not hand-copied text, since the point is to build a real pipeline and because ADA alone runs hundreds of pages.
+- Programmatic ingestion of ADA (multi-section journal articles) and NICE (PDF with numbered recommendations) — not hand-copied text, since the point is to build a real pipeline and because ADA alone runs hundreds of pages.
 - Chunking strategy varies by content shape: narrative sections can use semantic/recursive chunking; tables (screening ages, dosing) need structure-aware extraction rather than naive paragraph splitting, since a chunked-apart table row loses its meaning.
 - Metadata tagged per chunk: source, section, recommendation number (where available), publication/last-updated date — needed for citation granularity and recency flags.
 - Embedded into a vector store, indexed **separately per source** rather than one pooled index, since the disagreement-detection flow needs to retrieve from each source independently before comparing.
@@ -57,7 +56,7 @@ Two short-circuit checks that can terminate the graph early, in priority order:
 - **Patient-specific scope detection** — a classifier distinguishing "what do the guidelines say about this population" (answerable) from "what should I/my family member personally do" (not answerable). Deliberately tuned to not over-trigger on conversational-but-general phrasing ("if I have CKD, does that change treatment?").
 
 **3. Retrieval, comparison & synthesis (the core agentic flow)**
-- Retrieve independently from ADA, NICE, and IDF for the question.
+- Retrieve independently from ADA and NICE for the question.
 - Extract a structured claim per source (recommendation, applicable population, evidence grade, and an optional `stated_rationale` field populated only when the source text itself gives a reason).
 - Classify the relationship between the three claims: **same** / **scope difference** / **genuine conflict** / **silent** (a source doesn't address it). This node's job is classification only — not resolution or friendly hedging — to keep it precise.
 - Synthesize a final answer whose structure depends on the classification:
@@ -91,7 +90,6 @@ flowchart TB
         subgraph Stores["Vector Stores"]
             ADA[(ADA Index)]
             NICE[(NICE Index)]
-            IDF[(IDF Index)]
         end
         Checkpoint[(Conversation Checkpointer)]
     end
@@ -99,18 +97,15 @@ flowchart TB
     subgraph Sources["Ingestion Pipeline"]
         S1[ADA Standards of Care]
         S2[NICE NG28]
-        S3[IDF Global Recommendations]
     end
 
     S1 --> ADA
     S2 --> NICE
-    S3 --> IDF
 
     UI <--> API
     API <--> Graph
     Graph <--> ADA
     Graph <--> NICE
-    Graph <--> IDF
     Graph <--> Checkpoint
 
     Graph -.trace/eval.-> LangSmith[LangSmith]
@@ -130,15 +125,12 @@ flowchart TD
 
     RET --> RA[retrieve: ADA]
     RET --> RN[retrieve: NICE]
-    RET --> RI[retrieve: IDF]
 
     RA --> EA[extract_structured_claim: ADA]
     RN --> EN[extract_structured_claim: NICE]
-    RI --> EI[extract_structured_claim: IDF]
 
     EA --> CMP[compare_claims]
     EN --> CMP
-    EI --> CMP
 
     CMP -->|same| SYN1[synthesize: unified answer]
     CMP -->|scope difference| SYN2[synthesize: explain scope]
@@ -188,15 +180,14 @@ Run as a LangSmith eval dataset with typed inputs/expected outputs — determini
 ### Phase 0 — Setup
 - [ ] Stand up project environment (Python, LangChain, LangGraph, LangSmith tracing enabled from day one — not bolted on later)
 - [ ] Choose and provision a vector store (start simple — local Chroma or similar — swap later if needed)
-- [ ] Confirm licensing/usage terms for ADA, NICE, and IDF content before ingesting (educational/noncommercial use)
+- [ ] Confirm licensing/usage terms for ADA and NICE content before ingesting (educational/noncommercial use)
 
 ### Phase 1 — Ingestion pipeline
 - [ ] Write loaders for ADA's multi-section journal articles (loop over section URLs, not a single PDF)
 - [ ] Write loader for NICE NG28 PDF, preserving numbered-recommendation structure
-- [ ] Write loader for IDF global recommendations document
 - [ ] Design and implement content-aware chunking (narrative vs. tabular vs. algorithmic sections)
 - [ ] Tag chunks with metadata: source, section, recommendation number, last-updated date
-- [ ] Build three separate vector indices (ADA / NICE / IDF)
+- [ ] Build two separate vector indices (ADA / NICE)
 
 ### Phase 2 — v1: Single-source grounded Q&A
 - [ ] Basic retrieval chain against one index (start with ADA)

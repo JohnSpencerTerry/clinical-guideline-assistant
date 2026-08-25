@@ -1,6 +1,6 @@
 # Clinical Guideline Assistant
 
-Grounded Q&A over Type 2 Diabetes clinical guidelines (ADA, NICE, IDF) — a LangChain/LangGraph learning project. See [mvp.md](mvp.md) for the full design.
+Grounded Q&A over Type 2 Diabetes clinical guidelines (ADA, NICE) — a LangChain/LangGraph learning project. See [mvp.md](mvp.md) for the full design.
 
 ## Setup
 
@@ -25,7 +25,7 @@ uv run pytest
 
 ## Project layout
 
-- `src/cga/ingestion/` — loaders, chunking, and per-source vector indices (ADA / NICE / IDF)
+- `src/cga/ingestion/` — loaders, chunking, and per-source vector indices (ADA / NICE)
 - `src/cga/graph/` — LangGraph nodes: guardrails, retrieval, extraction, comparison, synthesis
 - `src/cga/memory/` — conversation checkpointer
 - `app/` — Streamlit chat UI

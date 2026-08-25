@@ -1,1 +1,1 @@
-"""Independent per-source retrieval against the ADA / NICE / IDF indices."""
+"""Independent per-source retrieval against the ADA / NICE indices."""
