@@ -18,6 +18,7 @@ dependencies = [
     "langchain-huggingface",
     "sentence-transformers",
     "langchain-text-splitters",
+    "tenacity",
 ]
 
 [dependency-groups]

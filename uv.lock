@@ -332,6 +332,7 @@ dependencies = [
     { name = "pypdf" },
     { name = "sentence-transformers" },
     { name = "streamlit" },
+    { name = "tenacity" },
 ]
 
 [package.dev-dependencies]
@@ -355,6 +356,7 @@ requires-dist = [
     { name = "pypdf" },
     { name = "sentence-transformers" },
     { name = "streamlit" },
+    { name = "tenacity" },
 ]
 
 [package.metadata.requires-dev]
