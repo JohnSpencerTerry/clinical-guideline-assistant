@@ -1,8 +1,8 @@
 # Example prompts
 
 Sample questions for trying out the [live demo](README.md#clinical-guideline-assistant),
-organized to show off the different behaviors in the graph (see [mvp.md](mvp.md)
-for how each is implemented). Pulled from [eval/dataset.py](eval/dataset.py).
+organized to show off the different behaviors in the graph (see [README.md's Design
+section](README.md#design) for how each is implemented). Pulled from [eval/dataset.py](eval/dataset.py).
 
 Suggested demo order: one factual-recall question first (retrieval + citations),
 then a comparison question (the "Guidelines differ here" badge), then a

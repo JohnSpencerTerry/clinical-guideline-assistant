@@ -1,8 +1,81 @@
 # Clinical Guideline Assistant
 
-Grounded Q&A over Type 2 Diabetes clinical guidelines (ADA, NICE) — a LangChain/LangGraph learning project. See [mvp.md](mvp.md) for the full design.
+Grounded Q&A over Type 2 Diabetes clinical guidelines (ADA, NICE) — a LangChain/LangGraph learning project.
 
 **Live demo**: [john-spencer-terry-clinical-guideline-assistant.streamlit.app](https://john-spencer-terry-clinical-guideline-assistant.streamlit.app/) (free-tier hosting — may cold-start on first visit; see [deploy-to-streamlit.md](deploy-to-streamlit.md))
+
+## Design
+
+Two sources, each indexed separately (ADA Standards of Care, NICE NG28) so the graph can retrieve from each independently and compare what they actually say, instead of pooling passages into one index and letting the model blend them.
+
+```mermaid
+flowchart TB
+    subgraph Client["Frontend"]
+        UI[Chat UI]
+    end
+
+    subgraph Backend["Backend"]
+        API[API Layer]
+        Graph[LangGraph Agent]
+        subgraph Stores["Vector Stores"]
+            ADA[(ADA Index)]
+            NICE[(NICE Index)]
+        end
+        Checkpoint[(Conversation Checkpointer)]
+    end
+
+    subgraph Sources["Ingestion Pipeline"]
+        S1[ADA Standards of Care]
+        S2[NICE NG28]
+    end
+
+    S1 --> ADA
+    S2 --> NICE
+
+    UI <--> API
+    API <--> Graph
+    Graph <--> ADA
+    Graph <--> NICE
+    Graph <--> Checkpoint
+
+    Graph -.trace/eval.-> LangSmith[LangSmith]
+```
+
+Two guardrail nodes run before any retrieval and can short-circuit straight to a redirect: an urgent/emergency check (keyword match, then an LLM classifier fallback for paraphrased urgency, both biased toward over-triggering) and a scope check (general guideline question vs. advice for a specific person). Past the guardrails, the graph retrieves and extracts a structured claim per source, classifies the relationship between the two claims (`same` / `scope_difference` / `conflict` / `silent`), and synthesizes an answer whose shape depends on that classification — a stated rationale is only ever quoted from the source text, never inferred.
+
+```mermaid
+flowchart TD
+    Start([User Question]) --> KW[urgent_check_keyword]
+    KW -->|hit| ER[emergency_redirect]
+    KW -->|no hit| LLMU[urgent_check_llm]
+    LLMU -->|hit| ER
+    LLMU -->|no hit| SC[scope_classifier]
+    SC -->|patient-specific| SR[scope_redirect]
+    SC -->|general question| RET[retrieve_per_source]
+
+    RET --> RA[retrieve: ADA]
+    RET --> RN[retrieve: NICE]
+
+    RA --> EA[extract_structured_claim: ADA]
+    RN --> EN[extract_structured_claim: NICE]
+
+    EA --> CMP[compare_claims]
+    EN --> CMP
+
+    CMP -->|same| SYN1[synthesize: unified answer]
+    CMP -->|scope difference| SYN2[synthesize: explain scope]
+    CMP -->|conflict| SYN3[synthesize: present both + grounded rationale if stated]
+    CMP -->|silent| SYN4[synthesize: note gap]
+
+    SYN1 --> End([Answer + Citations])
+    SYN2 --> End
+    SYN3 --> End
+    SYN4 --> End
+    ER --> End
+    SR --> End
+```
+
+This is a learning project, not a clinical tool — the guardrails above are a reasonable first pass, not a substitute for real regulatory, legal, and clinical review.
 
 ## Setup
 
@@ -17,7 +90,7 @@ Model access is via [OpenRouter](https://openrouter.ai) (OpenAI-compatible API) 
 
 ## Getting the source documents
 
-Loaders read from local files (not live scraping — see mvp.md Phase 1 notes) that you download once:
+Loaders read from local files (not live scraping) that you download once:
 
 **ADA** — save each of the 17 *Standards of Care in Diabetes—2026* sections as `data/raw/ada/section_NN.pdf`, from `https://doi.org/10.2337/dc26-s00N` (section 13 is `dc26-S013`, capital S).
 
@@ -55,7 +128,7 @@ uv run pytest
 uv run python -m eval.run
 ```
 
-`eval/dataset.py` has a starter set of hand-checked questions (not the full ~70-90 mvp.md targets — see mvp.md's Evaluation section for the full plan). Guardrail categories (`scope_guardrail`, `urgent_symptom_detection`) are graded pass/fail deterministically; grounded-recall/comparison/adversarial categories are run-and-reported for manual review until there's a reference answer to grade against.
+`eval/dataset.py` has a starter set of hand-checked questions (not the full ~70-90 target — see Known Limitations below). Guardrail categories (`scope_guardrail`, `urgent_symptom_detection`) are graded pass/fail deterministically; grounded-recall/comparison/adversarial categories are run-and-reported for manual review until there's a reference answer to grade against.
 
 ## Project layout
 
@@ -71,6 +144,6 @@ uv run python -m eval.run
 - **This is a learning project, not a clinical tool.** The guardrails (emergency/scope detection) are not a substitute for real regulatory, legal, and clinical review.
 - **Free-tier model flakiness.** OpenRouter's `:free` models sometimes stall or return transient upstream errors (observed: `502 Service temporarily overloaded`) under back-to-back requests. `get_chat_model()` sets a 60s timeout + 2 retries, and `eval/run.py` adds inter-case delay + call-level retry with backoff — but a fully unattended run can still hit a case that needs a manual re-run. This is upstream provider behavior, not a bug in this codebase (individual isolated calls consistently succeed).
 - **Retrieval quality is v1.** With `k=4` and a small local embedding model (`all-MiniLM-L6-v2`), retrieval sometimes misses the most relevant passage (e.g. pulling an unrelated section instead of the specific recommendation). Worth tuning `k`, trying a larger embedding model, or adding a reranking step.
-- **Eval set is a starter, not the full plan.** mvp.md targets ~70-90 hand-verified questions across 6 categories; the current set is a smaller, hand-checked sample to prove the framework works — expand it by reading the source PDFs directly.
+- **Eval set is a starter, not the full plan.** The target is ~70-90 hand-verified questions across 6 categories; the current set is a smaller, hand-checked sample to prove the framework works — expand it by reading the source PDFs directly.
 - **Streamlit UI hasn't been browser-verified.** No headless-browser tooling (`chromium-cli`/Playwright) was available in the dev environment used to build this — the server boots and the identical backend call was verified via CLI, but the chat UI itself (history rendering, badges) should get a manual once-over.
 - **Retrieval/extraction/comparison run sequentially per source**, not fanned out in parallel — simpler and correct, but not as fast as it could be (see `build_graph.py`'s docstring).
