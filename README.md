@@ -2,6 +2,8 @@
 
 Grounded Q&A over Type 2 Diabetes clinical guidelines (ADA, NICE) — a LangChain/LangGraph learning project. See [mvp.md](mvp.md) for the full design.
 
+**Live demo**: [john-spencer-terry-clinical-guideline-assistant.streamlit.app](https://john-spencer-terry-clinical-guideline-assistant.streamlit.app/) (free-tier hosting — may cold-start on first visit; see [deploy-to-streamlit.md](deploy-to-streamlit.md))
+
 ## Setup
 
 ```bash
