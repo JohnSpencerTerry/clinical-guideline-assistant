@@ -5,6 +5,7 @@ retrieve from each source independently before comparing.
 """
 
 import shutil
+from functools import cache
 from pathlib import Path
 
 from langchain_chroma import Chroma
@@ -33,6 +34,7 @@ def build_index(source: str, documents: list[Document]) -> Chroma:
     )
 
 
+@cache
 def load_index(source: str) -> Chroma:
     persist_dir = _persist_dir(source)
     if not persist_dir.exists():

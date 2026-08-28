@@ -35,33 +35,11 @@ This embeds locally via `sentence-transformers` (free, no API key, but CPU-bound
 uv run streamlit run app/streamlit_app.py
 ```
 
-## Deploying a free demo (Streamlit Community Cloud)
+## Deploying a free demo
 
-The built Chroma indices under `data/processed/chroma/` (~47MB) are committed to
-this repo, so the deployed app doesn't need the raw PDFs or an ingestion step —
-it just loads the index that's already there. (`data/raw/` stays gitignored;
-the ADA/NICE source PDFs aren't redistributed.)
-
-1. Push this repo to GitHub (already set up if you're reading this from a clone).
-2. Go to [share.streamlit.io](https://share.streamlit.io), sign in, and create a new app:
-   - Repository: this repo
-   - Branch: `main`
-   - Main file path: `app/streamlit_app.py`
-3. Under **Advanced settings -> Secrets**, paste the contents of
-   [.streamlit/secrets.toml.example](.streamlit/secrets.toml.example) with your
-   own `OPENROUTER_API_KEY` filled in (same $0-credit-limit key from Setup above).
-4. Deploy. First build installs CPU-only `torch` (see `requirements.txt`'s
-   `--extra-index-url`) plus the rest of the deps — takes a few minutes.
-
-`requirements.txt` is generated from `uv.lock` via `uv export`, with the
-CUDA/nvidia-\* packages stripped and a CPU-only PyTorch index added, since
-Streamlit Cloud's free tier has no GPU and would otherwise pull several GB of
-unused CUDA wheels. Regenerate it after changing dependencies:
-
-```bash
-uv export --no-dev --no-hashes -o requirements.txt
-# then strip nvidia-*/cuda-*/triton==* lines and re-add the --extra-index-url line
-```
+See [deploy-to-streamlit.md](deploy-to-streamlit.md) for hosting this on
+Streamlit Community Cloud using the Chroma indices already committed under
+`data/processed/`.
 
 ## Run tests
 

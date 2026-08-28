@@ -4,14 +4,14 @@ from tests.graph.fakes import FakeChatModel
 
 
 def _claim(**overrides):
-    defaults = dict(
-        source="ADA",
-        recommendation="Metformin first-line.",
-        population="Adults with type 2 diabetes",
-        evidence_grade="A",
-        stated_rationale=None,
-        citation="s009",
-    )
+    defaults = {
+        "source": "ADA",
+        "recommendation": "Metformin first-line.",
+        "population": "Adults with type 2 diabetes",
+        "evidence_grade": "A",
+        "stated_rationale": None,
+        "citation": "s009",
+    }
     return Claim(**{**defaults, **overrides})
 
 

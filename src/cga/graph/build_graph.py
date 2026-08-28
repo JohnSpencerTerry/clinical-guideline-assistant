@@ -121,5 +121,12 @@ def build_graph(*, llm=None, checkpointer=None):
 
 
 def ask(question: str, *, thread_id: str = "default") -> GraphState:
+    """Convenience one-shot call: builds a fresh graph (and checkpointer) per invocation.
+
+    `thread_id` only threads state within a single call's checkpointer, not
+    across separate `ask()` calls — for real multi-turn memory, build the
+    graph once (`build_graph()`) and invoke the same compiled app repeatedly,
+    as `app/streamlit_app.py` does via `st.cache_resource`.
+    """
     app = build_graph()
     return app.invoke({"question": question}, config={"configurable": {"thread_id": thread_id}})

@@ -11,7 +11,11 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
-from cga.ingestion.loaders.base import RAW_DATA_DIR, SourceFilesMissing, extract_text_from_pdf
+from cga.ingestion.loaders.base import (
+    RAW_DATA_DIR,
+    SourceFilesMissing,
+    extract_text_from_pdf,
+)
 
 NICE_PDF_URL = "https://www.nice.org.uk/guidance/ng28/resources/type-2-diabetes-in-adults-management-pdf-1837338615493"
 

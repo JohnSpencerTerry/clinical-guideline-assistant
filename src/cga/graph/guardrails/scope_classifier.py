@@ -3,8 +3,9 @@
 Deliberately tuned to not over-trigger on conversational-but-general phrasing.
 """
 
-from langchain_core.language_models.chat_models import BaseChatModel
 from typing import Literal
+
+from langchain_core.language_models.chat_models import BaseChatModel
 
 _PROMPT = """Classify the following message as one of two categories:
 

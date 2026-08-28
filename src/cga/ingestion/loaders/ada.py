@@ -8,7 +8,11 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
-from cga.ingestion.loaders.base import RAW_DATA_DIR, SourceFilesMissing, extract_text_from_pdf
+from cga.ingestion.loaders.base import (
+    RAW_DATA_DIR,
+    SourceFilesMissing,
+    extract_text_from_pdf,
+)
 
 ADA_SECTIONS: list[tuple[int, str, str]] = [
     (1, "Improving Care and Promoting Health in Populations", "https://doi.org/10.2337/dc26-s001"),
